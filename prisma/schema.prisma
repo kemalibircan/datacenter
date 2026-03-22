@@ -1,0 +1,107 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model SavedAnalysis {
+  id               String   @id @default(cuid())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  sessionId        String?  // anonymous session identifier
+  label            String?  // user-provided label
+  lat              Float
+  lng              Float
+  address          String?
+  country          String?
+  elevation        Float?
+  compositeScore   Float
+  scores           Json     // CategoryScore[]
+  explanations     Json     // ExplanationCard[]
+  rawProviderData  Json?    // raw provider responses (cacheable)
+  mockMode         Boolean  @default(false)
+  
+  planningScenarios PlanningScenario[]
+  comparisonSets    ComparisonSetItem[]
+
+  @@index([sessionId])
+  @@index([lat, lng])
+}
+
+model PlanningScenario {
+  id               String   @id @default(cuid())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  sessionId        String?
+  label            String?
+  
+  // Inputs
+  whiteSpaceM2     Float
+  workloadType     String   // GeneralIT | HPC | AI_GPU | Mixed
+  rackDensityKw    Float
+  availabilityTier String   // N | N_PLUS_1 | 2N
+  growthYears      Int
+  sustainabilityPriority String // Low | Medium | High
+  waterSensitivity String   // Low | Medium | High
+  manualOverrides  Json?    // Record<string, string | number>
+  
+  // Outputs
+  recommendation   Json     // PlanningRecommendation
+  
+  analysisId       String?
+  analysis         SavedAnalysis? @relation(fields: [analysisId], references: [id])
+
+  @@index([sessionId])
+  @@index([analysisId])
+}
+
+model ComparisonSet {
+  id        String            @id @default(cuid())
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  sessionId String?
+  label     String?
+  items     ComparisonSetItem[]
+
+  @@index([sessionId])
+}
+
+model ComparisonSetItem {
+  id              String        @id @default(cuid())
+  comparisonSetId String
+  comparisonSet   ComparisonSet @relation(fields: [comparisonSetId], references: [id], onDelete: Cascade)
+  analysisId      String
+  analysis        SavedAnalysis @relation(fields: [analysisId], references: [id])
+  order           Int           @default(0)
+
+  @@unique([comparisonSetId, analysisId])
+}
+
+model CachedProviderResponse {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  provider    String   // e.g. "open-elevation"
+  cacheKey    String   // lat_lng or address-based key
+  data        Json
+  expiresAt   DateTime
+
+  @@unique([provider, cacheKey])
+  @@index([expiresAt])
+}
+
+model DemoScenario {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  label       String
+  description String
+  lat         Float
+  lng         Float
+  mockData    Json     // pre-computed SiteAnalysisResult
+  sortOrder   Int      @default(0)
+}

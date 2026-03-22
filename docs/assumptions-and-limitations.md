@@ -1,4 +1,4 @@
-# DC SiteLab — Assumptions and Limitations
+1# DC SiteLab — Assumptions and Limitations
 
 > **IMPORTANT DISCLAIMER:** DC SiteLab is an educational simulator. It is NOT a certified engineering design tool, structural assessment, or regulatory compliance advisory. All outputs are educational approximations and must not be used as the basis for real capital investment decisions without independent expert review.
 
