@@ -5,6 +5,7 @@ const translations = {
     // NavBar
     nav_home: "Home",
     nav_analyze: "Analyze",
+    nav_site_selection: "Site Selection",
     nav_plan: "Plan",
     nav_compare: "Compare",
     nav_scenarios: "Scenarios",
@@ -398,6 +399,7 @@ const translations = {
     // NavBar
     nav_home: "Ana Sayfa",
     nav_analyze: "Analiz",
+    nav_site_selection: "Arazi Seçimi",
     nav_plan: "Planlama",
     nav_compare: "Karşılaştır",
     nav_scenarios: "Senaryolar",

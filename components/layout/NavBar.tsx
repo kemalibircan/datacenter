@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Server, Map, BarChart3, GitCompare, BookOpen, Activity, Languages } from "lucide-react";
+import { Server, Map, BarChart3, GitCompare, BookOpen, Activity, Languages, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/context/LanguageContext";
@@ -14,6 +14,7 @@ export function NavBar() {
   const navItems = [
     { href: "/", label: t("nav_home"), icon: Server },
     { href: "/analyze", label: t("nav_analyze"), icon: Map },
+    { href: "/site-selection", label: t("nav_site_selection"), icon: MapPin },
     { href: "/plan", label: t("nav_plan"), icon: BarChart3 },
     { href: "/compare", label: t("nav_compare"), icon: GitCompare },
     { href: "/scenarios", label: t("nav_scenarios"), icon: BookOpen },

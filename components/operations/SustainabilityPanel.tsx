@@ -64,16 +64,16 @@ export function SustainabilityPanel({ telemetry: tel, trend }: SustainabilityPan
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-3">
-            <div className="flex flex-col items-center">
+            <div className="relative" style={{ height: 120 }}>
               <ResponsiveContainer width="100%" height={120}>
                 <RadialBarChart innerRadius="60%" outerRadius="90%" startAngle={90} endAngle={-270} data={pueData}>
                   <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
                   <RadialBar background dataKey="value" cornerRadius={6} />
                 </RadialBarChart>
               </ResponsiveContainer>
-              <div className="text-center -mt-10">
-                <div className={cn("text-3xl font-bold", pueGrade.color)}>{tel.pue.toFixed(2)}</div>
-                <div className={cn("text-xs font-medium", pueGrade.color)}>{t(pueGrade.labelKey)}</div>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <div className={cn("text-2xl font-bold leading-none", pueGrade.color)}>{tel.pue.toFixed(2)}</div>
+                <div className={cn("text-xs font-medium mt-0.5", pueGrade.color)}>{t(pueGrade.labelKey)}</div>
               </div>
             </div>
           </CardContent>
@@ -87,16 +87,16 @@ export function SustainabilityPanel({ telemetry: tel, trend }: SustainabilityPan
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-3">
-            <div className="flex flex-col items-center">
+            <div className="relative" style={{ height: 120 }}>
               <ResponsiveContainer width="100%" height={120}>
                 <RadialBarChart innerRadius="60%" outerRadius="90%" startAngle={90} endAngle={-270} data={renewableData}>
                   <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
                   <RadialBar background={{ fill: "rgba(255,255,255,0.05)" }} dataKey="value" cornerRadius={6} />
                 </RadialBarChart>
               </ResponsiveContainer>
-              <div className="text-center -mt-10">
-                <div className="text-3xl font-bold text-emerald-400">{tel.renewablePercent}%</div>
-                <div className="text-xs text-muted-foreground">{t("sp_renewable_share")}</div>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <div className="text-2xl font-bold text-emerald-400 leading-none">{tel.renewablePercent}%</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{t("sp_renewable_share")}</div>
               </div>
             </div>
           </CardContent>
