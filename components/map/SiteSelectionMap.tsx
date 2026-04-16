@@ -472,6 +472,192 @@ export function SiteSelectionMap() {
     });
   }, [layerRadii, showHeatMap, mapLoaded, mapCenter, poiData, setSuitabilityGrid]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ─── 3D DC Building + Distance Lines ────────────────────────────────────
+  const selectedParcel = useSiteSelectionStore((s) => s.selectedParcel);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+
+    // Layer IDs for cleanup
+    const buildingLayerId = "dc-building-3d";
+    const buildingSrcId = "dc-building-src";
+    const linesSrcId = "dc-distance-lines-src";
+    const linesLayerId = "dc-distance-lines";
+    const labelsSrcId = "dc-distance-labels-src";
+    const labelsLayerId = "dc-distance-labels";
+    const outlineSrcId = "dc-building-outline-src";
+    const outlineLayerId = "dc-building-outline";
+
+    // Clean up previous
+    try { map.removeLayer(buildingLayerId); } catch {}
+    try { map.removeSource(buildingSrcId); } catch {}
+    try { map.removeLayer(linesLayerId); } catch {}
+    try { map.removeSource(linesSrcId); } catch {}
+    try { map.removeLayer(labelsLayerId); } catch {}
+    try { map.removeSource(labelsSrcId); } catch {}
+    try { map.removeLayer(outlineLayerId); } catch {}
+    try { map.removeSource(outlineSrcId); } catch {}
+
+    if (!selectedParcel) return;
+
+    const { lat, lng } = selectedParcel.coordinates;
+
+    // Calculate building size from closedAreaM2 (convert m² to degrees approx)
+    const areaM2 = dcSpecs.closedAreaM2 || 2500;
+    const sideM = Math.sqrt(areaM2);
+    // ~111,320 meters per degree lat, ~85,000 at Turkey's latitude
+    const dLat = (sideM / 111320) * 0.6;
+    const dLng = (sideM / 85000) * 1.0;
+
+    // Rectangle corners for DC building
+    const buildingCoords = [
+      [lng - dLng, lat - dLat],
+      [lng + dLng, lat - dLat],
+      [lng + dLng, lat + dLat],
+      [lng - dLng, lat + dLat],
+      [lng - dLng, lat - dLat],
+    ];
+
+    // Building height proportional to MW capacity
+    const heightM = Math.max(15, (dcSpecs.powerMW || 5) * 4);
+
+    // Add 3D extruded building
+    map.addSource(buildingSrcId, {
+      type: "geojson",
+      data: {
+        type: "FeatureCollection",
+        features: [{
+          type: "Feature",
+          properties: { height: heightM, base: 0 },
+          geometry: { type: "Polygon", coordinates: [buildingCoords] },
+        }],
+      },
+    });
+
+    map.addLayer({
+      id: buildingLayerId,
+      type: "fill-extrusion",
+      source: buildingSrcId,
+      paint: {
+        "fill-extrusion-color": "#3b82f6",
+        "fill-extrusion-height": ["get", "height"],
+        "fill-extrusion-base": ["get", "base"],
+        "fill-extrusion-opacity": 0.85,
+      },
+    });
+
+    // Building footprint outline
+    map.addSource(outlineSrcId, {
+      type: "geojson",
+      data: {
+        type: "FeatureCollection",
+        features: [{
+          type: "Feature",
+          properties: {},
+          geometry: { type: "Polygon", coordinates: [buildingCoords] },
+        }],
+      },
+    });
+
+    map.addLayer({
+      id: outlineLayerId,
+      type: "line",
+      source: outlineSrcId,
+      paint: {
+        "line-color": "#60a5fa",
+        "line-width": 2,
+        "line-dasharray": [2, 1],
+      },
+    });
+
+    // Distance lines to each nearest POI
+    const lineFeatures: any[] = [];
+    const labelFeatures: any[] = [];
+
+    if (selectedParcel.nearbyPOIs) {
+      for (const poi of selectedParcel.nearbyPOIs) {
+        const layerConfig = CRITERION_LAYERS.find((l) => l.id === poi.type);
+        const color = layerConfig?.color || "#9ca3af";
+
+        // Line from DC to POI
+        lineFeatures.push({
+          type: "Feature",
+          properties: { color },
+          geometry: {
+            type: "LineString",
+            coordinates: [[lng, lat], [poi.lng, poi.lat]],
+          },
+        });
+
+        // Midpoint label
+        const midLat = (lat + poi.lat) / 2;
+        const midLng = (lng + poi.lng) / 2;
+        labelFeatures.push({
+          type: "Feature",
+          properties: {
+            label: `${poi.distanceKm} km`,
+            name: poi.name,
+            color,
+          },
+          geometry: { type: "Point", coordinates: [midLng, midLat] },
+        });
+      }
+    }
+
+    // Add lines
+    map.addSource(linesSrcId, {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: lineFeatures },
+    });
+
+    map.addLayer({
+      id: linesLayerId,
+      type: "line",
+      source: linesSrcId,
+      paint: {
+        "line-color": ["get", "color"],
+        "line-width": 2,
+        "line-dasharray": [6, 3],
+        "line-opacity": 0.8,
+      },
+    });
+
+    // Add distance labels at midpoints
+    map.addSource(labelsSrcId, {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: labelFeatures },
+    });
+
+    map.addLayer({
+      id: labelsLayerId,
+      type: "symbol",
+      source: labelsSrcId,
+      layout: {
+        "text-field": ["concat", ["get", "label"], "\n", ["get", "name"]],
+        "text-size": 11,
+        "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
+        "text-anchor": "center",
+        "text-max-width": 14,
+        "text-allow-overlap": true,
+      },
+      paint: {
+        "text-color": "#ffffff",
+        "text-halo-color": "rgba(0,0,0,0.8)",
+        "text-halo-width": 1.5,
+      },
+    });
+
+    // Tilt camera to show 3D perspective
+    map.easeTo({
+      center: [lng, lat],
+      zoom: Math.max(map.getZoom(), 11),
+      pitch: 55,
+      bearing: -20,
+      duration: 1200,
+    });
+  }, [selectedParcel, mapLoaded, dcSpecs.closedAreaM2, dcSpecs.powerMW]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className="relative w-full h-full">
       <div ref={mapContainer} className="w-full h-full" />
